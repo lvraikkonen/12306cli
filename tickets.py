@@ -14,14 +14,14 @@ Options:
     -z          直达
 
 Example:
-    tickets 北京 上海 2017-08-01
-    tickets -dg 成都 南京 2017-08-01
+    python tickets.py 北京 上海 2017-08-01
+    python tickets.py -dg 成都 南京 2017-08-01
 """
 import os
 import pickle
 from docopt import docopt
 from prettytable import PrettyTable
-from colorama import init, Fore
+from colorama import Fore
 
 # from parse_station_code import stations, stations_code_mapping
 import requests
@@ -87,9 +87,10 @@ class TrainsCollections(object):
         self.available_trains = available_trains
         self.options = options
 
-    def _get_duration(self, raw_train):
+    @staticmethod
+    def _get_duration(raw_train):
         duration = raw_train[10].replace(':', '小时') + '分'
-        if duration.startswith('00'): # less than 1 hour
+        if duration.startswith('00'):  # less than 1 hour
             return duration[4:]
         if duration.startswith('0'):
             return duration[1:]
@@ -105,16 +106,16 @@ class TrainsCollections(object):
                 train = [
                     train_no,
                     '\n'.join([Fore.GREEN + stations_code_mapping[train_info_lst[6]] + Fore.RESET,  # 始发站
-                               Fore.RED + stations_code_mapping[train_info_lst[7]] + Fore.RESET]), # 到达站
+                               Fore.RED + stations_code_mapping[train_info_lst[7]] + Fore.RESET]),  # 到达站
                     '\n'.join([Fore.GREEN + train_info_lst[8] + Fore.RESET,  # 发车时间
-                               Fore.RED + train_info_lst[9] + Fore.RESET]),# 到达时间
+                               Fore.RED + train_info_lst[9] + Fore.RESET]),  # 到达时间
                     self._get_duration(train_info_lst),
-                    train_info_lst[31], # 一等座
-                    train_info_lst[30], # 二等座
-                    train_info_lst[23], # 软卧
-                    train_info_lst[28], # 硬卧
-                    train_info_lst[29], # 硬座
-                    train_info_lst[26], # 无座
+                    train_info_lst[31],  # 一等座
+                    train_info_lst[30],  # 二等座
+                    train_info_lst[23],  # 软卧
+                    train_info_lst[28],  # 硬卧
+                    train_info_lst[29],  # 硬座
+                    train_info_lst[26],  # 无座
                 ]
                 yield train
 
@@ -130,34 +131,25 @@ def load_obj(name):
     with open(name + '.pkl', 'rb') as f:
         return pickle.load(f)
 
-def _load_stations():
-    filepath = os.path.join(os.path.dirname(__file__), 'station_dump.pkl')
-    stations = {}
-    with open(filepath, 'rb') as f:
-        for line in f.readlines():
-            name, code = line.split()
-            stations[name] = code
-    return stations
-
 
 stations = load_obj('station_dump')
 stations_code_mapping = {station_code: station_name for station_name, station_code in stations.items()}
-QUERY_URL = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date={}&leftTicketDTO.from_station={}&leftTicketDTO.to_station={}&purpose_codes=ADULT'
-
+QUERY_URL = 'https://kyfw.12306.cn/otn/leftTicket/query?leftTicketDTO.train_date={}&leftTicketDTO.'\
+            'from_station={}&leftTicketDTO.to_station={}&purpose_codes=ADULT'
 
 
 def cli():
     """command-line interface"""
     arguments = docopt(__doc__)
-    print(arguments)
-#     arguments = {'-d': True,
-#      '-g': True,
-#      '-k': False,
-#      '-t': False,
-#      '-z': False,
-#      '<date>': '2017-08-05',
-#      '<from>': '北京',
-#      '<to>': '大连'}
+    # print(arguments)
+#    arguments = {'-d': True,
+#                 '-g': True,
+#                 '-k': False,
+#                 '-t': False,
+#                 '-z': False,
+#                 '<date>': '2017-08-05',
+#                 '<from>': '北京',
+#                 '<to>': '大连'}
 
     # params getting
     from_station = stations.get(arguments['<from>'])
@@ -174,7 +166,6 @@ def cli():
     available_trains = req.json()['data']['result']
     TrainsCollections(available_trains, options).pretty_print()
     # print(available_trains)
-
 
 
 if __name__ == '__main__':
